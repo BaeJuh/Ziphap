@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 데이터 모델: User ─(Membership)─ Group ─1:N─ Hangout ─1:N─ Attendance
+// 상세 결정은 docs/adr/0004 참고.
+
+model User {
+  id        String   @id @default(cuid())
+  name      String   @unique // 로그인 식별자 (일단은 이름만, ADR 0003)
+  email     String?  @unique // 선택 — 추후 이메일 로그인 대비 보존
+  createdAt DateTime @default(now())
+
+  memberships Membership[]
+  hangouts    Hangout[] // 내가 띄운 약속
+  attendances Attendance[] // 내가 참가한 약속
+}
+
+model Group {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique // 초대 링크/코드 (ADR 없음, README 슬라이스 2)
+  createdAt  DateTime @default(now())
+
+  memberships Membership[]
+  hangouts    Hangout[]
+}
+
+// User ↔ Group 다대다 조인. 한 사람이 한 그룹에 한 번만.
+model Membership {
+  id       String   @id @default(cuid())
+  userId   String
+  groupId  String
+  joinedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+}
+
+// "놀자 띄우기". date는 날짜만 저장(@db.Date) → 타임존 회피. 시간은 timeText 자유텍스트.
+model Hangout {
+  id        String   @id @default(cuid())
+  groupId   String
+  creatorId String
+  date      DateTime @db.Date
+  timeText  String // 예: "퇴근후", "저녁"
+  note      String // 한 줄 메모
+  createdAt DateTime @default(now())
+
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator User  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  attendances Attendance[]
+}
+
+// 이진(binary): 행 존재 = 참가 / 없음 = 무반응. status 컬럼 없음 (ADR 0004).
+model Attendance {
+  id        String   @id @default(cuid())
+  hangoutId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  hangout Hangout @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hangoutId, userId])
+}

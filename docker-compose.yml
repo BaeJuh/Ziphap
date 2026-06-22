@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:17
+    container_name: ziphap-db
+    environment:
+      POSTGRES_USER: ziphap
+      POSTGRES_PASSWORD: ziphap
+      POSTGRES_DB: ziphap
+    ports:
+      - "5432:5432"
+    volumes:
+      - ziphap-pgdata:/var/lib/postgresql/data
+
+volumes:
+  ziphap-pgdata:

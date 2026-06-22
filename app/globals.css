@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
+/* 디자인 토큰 — prototype.html의 night(다크) 테마 (ADR 디자인 방향) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0f1115;
+  --card: #1a1d24;
+  --card2: #222630;
+  --line: #2c313c;
+  --txt: #eef1f6;
+  --muted: #9aa3b2;
+  --accent: #ff5c5c;
+  --accent2: #3ddc97;
+  --chip: #2b3340;
+  --sat: #7aa7ff;
+  --sun: #ff7a7a;
+  --radius: 8px;
 }
 
+/* clean — 밝고 절제된 라이트 테마 (prototype) */
+[data-theme="clean"] {
+  --bg: #ffffff;
+  --card: #f7f8fa;
+  --card2: #fbfcfd;
+  --line: #e7e9ee;
+  --txt: #16181d;
+  --muted: #8e95a3;
+  --accent: #e8483d;
+  --accent2: #16a06e;
+  --chip: #eef0f4;
+  --sat: #3b6fd4;
+  --sun: #e0483d;
+  --radius: 9px;
+}
+
+/* Tailwind v4: 토큰을 색 유틸로 노출 (bg-card, text-accent, border-line, text-sat …) */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-card2: var(--card2);
+  --color-line: var(--line);
+  --color-txt: var(--txt);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent2: var(--accent2);
+  --color-chip: var(--chip);
+  --color-sat: var(--sat);
+  --color-sun: var(--sun);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--txt);
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 테마 전환 시 색이 부드럽게 (transition 유틸 가진 요소는 그게 우선) */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 얇은 테마 스크롤바 (목업 .panel-scroll) — OS 기본 굵은 스크롤바 대체 */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 99px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
