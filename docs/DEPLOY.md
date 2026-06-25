@@ -17,6 +17,7 @@
 |---|---|
 | `DATABASE_URL` | Railway Postgres 플러그인이 제공. 앱 서비스에서 해당 변수 참조. |
 | `SESSION_SECRET` | **새로 생성** 후 설정: `openssl rand -base64 32` (로컬 값 재사용 금지). |
+| `ADMIN_NAMES` | `/admin` 접근 허용 이름(쉼표구분). 미설정 시 admin 전체 차단(fail-closed). ⚠️ 이름-only 로그인이라 추측 가능 — 임시. |
 
 ## 절차
 

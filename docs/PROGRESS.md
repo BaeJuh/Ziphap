@@ -2,11 +2,18 @@
 
 > 다음 세션에 이 문서부터 읽고 재개. 기획 전반은 [README.md](../README.md), 결정은 [adr/](adr/), 배포는 [DEPLOY.md](DEPLOY.md).
 
-## 현재 상태 (2026-06-22)
+## 현재 상태 (2026-06-25)
 
-**MVP 기능 완성 (Slice 1~5 전부). 프로덕션 빌드 검증됨. 아직 git 커밋·배포 안 함.**
+**MVP 완성 + 배포 전 코드리뷰 반영 + Railway 배포 완료. `/admin` 운영 현황 추가.**
 
-핵심 루프가 다 동작: **이름 로그인 → 그룹 생성/초대 → 약속("집합") 띄우기 → 참가 토글.** 다크/라이트 테마, 모바일 바텀시트, 커스텀 드롭다운, 모션까지 적용.
+핵심 루프가 다 동작: **이름 로그인 → 그룹 생성/초대 → 약속("집합") 띄우기 → 참가 토글.** 다크/라이트 테마, 모바일 바텀시트, 커스텀 드롭다운, 모션까지 적용. GitHub `main` 푸시 완료, Railway(앱 컨테이너 + Postgres) 배포됨 — 환경변수 `DATABASE_URL`·`SESSION_SECRET`·`ADMIN_NAMES` 설정.
+
+### 배포 전 코드리뷰 반영 (보안+정확성, 커밋 `72d6876`)
+
+- **참가 토글 레이스** (`app/actions/hangout.ts`): 더블탭/동시요청 시 `P2002`(중복생성)·`P2025`(삭제됨) 무해 케이스 흡수, 그 외만 throw → unhandled 500 방지.
+- **초대 라우트 정보노출** (`app/join/[code]/page.tsx`): 로그인 전 그룹명·멤버수·코드 유효성 비공개(미인증 열거 차단).
+- **생성 실패 피드백** (`group-calendar.tsx`): `createHangout` 실패 시 시트에 에러 표시.
+- 미반영(인지): `SESSION_SECRET` fail-fast 가드(테스트라 스킵), 입력 길이 제한, 토글 실패 피드백, 오픈리다이렉트 `//` 보강. 캘린더 날짜 로직·인가(IDOR)는 견고 확인됨.
 
 | 슬라이스 | 상태 |
 |---|---|
@@ -20,11 +27,15 @@
 
 ## 다음 할 일
 
-1. **git 커밋 + 푸시** (현재 최초 커밋 1개뿐, 작업 전부 미커밋).
-2. **Railway 배포** — [DEPLOY.md](DEPLOY.md) 참고. Postgres 플러그인 + `SESSION_SECRET` 설정.
-3. 배포 후 도메인에서 전체 흐름 확인.
+커밋·푸시·배포 완료. 남은 건 **라이브 도메인에서 전체 흐름 최종 확인**(로그인→그룹→약속→참가→초대, `/admin`).
 
-남은 다듬기(선택): 월 이동은 4주 롤링으로 대체했으므로 불필요([ADR 0005](adr/0005-rolling-4week-calendar.md)). 추가 기능은 README "MVP 제외(백로그)" 참고.
+**백로그 (공개 확장 시):**
+
+1. **인증 정식화** — 현재 이름-only(비번 없음, 사칭 가능, ADR 0003). 지인 소수에선 OK. 공개 확장 시 OAuth(카카오/구글) + User `isAdmin`/role로.
+2. **`/admin` 인증 승격** — 현재 `ADMIN_NAMES` 이름 게이트인데 이름-only라 "admin"은 추측 가능(임시). 별도 비번 쿠키 또는 `isAdmin` 플래그로 교체.
+3. 그 외: 입력 길이 제한, 토글 실패 피드백 등(위 코드리뷰 미반영분), README "MVP 제외(백로그)".
+
+남은 다듬기: 월 이동은 4주 롤링으로 대체했으므로 불필요([ADR 0005](adr/0005-rolling-4week-calendar.md)).
 
 ## 구현 맵 (파일)
 
@@ -34,6 +45,7 @@
 - **약속/참가** — `app/actions/hangout.ts`(`createHangout`/`toggleAttendance`), `app/groups/[id]/group-calendar.tsx`(캘린더+바텀시트+생성시트, 클라이언트).
 - **캘린더** ([ADR 0005](adr/0005-rolling-4week-calendar.md)) — `lib/calendar.ts`(오늘부터 4주, Asia/Seoul 기준·UTC 산술). 칸=띄운 사람 이니셜 아바타(내가 가는 약속은 초록), 전체는 날짜 탭→바텀시트 목록.
 - **디자인** — `app/globals.css`(토큰 + night/clean 테마 + 키프레임/스크롤바), `app/theme-toggle.tsx`, `app/groups/[id]/group-switcher.tsx`, `app/layout.tsx`(430px 프레임).
+- **운영 현황** — `app/admin/page.tsx`(읽기 전용). `ADMIN_NAMES`(쉼표구분 이름) 허용목록 게이트 → 비admin·미설정은 `notFound`(fail-closed). 요약수치(유저·그룹·약속·참가)·그룹별 멤버/약속수·최근 약속 8개. UI에 링크 없는 숨은 라우트. 인증은 임시(위 백로그 2).
 
 ## ⚠️ 함정 (다음 세션 주의)
 

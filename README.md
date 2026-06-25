@@ -32,7 +32,7 @@ User ─(Membership)─ Group ─1:N─ Hangout ─1:N─ Attendance
 4. ✅ 참가 반응 토글 + 참가자 표시
 5. ✅ 모바일 우선 반응형 마감 (테마 토글·바텀시트·드롭다운·모션)
 
-> MVP 기능 완성. 배포만 남음 → [docs/PROGRESS.md](docs/PROGRESS.md), [docs/DEPLOY.md](docs/DEPLOY.md).
+> MVP 완성 + 배포 전 코드리뷰 반영 + **Railway 배포 완료**. 읽기 전용 운영 현황 `/admin` 추가(임시 인증). 진행기록 → [docs/PROGRESS.md](docs/PROGRESS.md), [docs/DEPLOY.md](docs/DEPLOY.md).
 
 **MVP 제외(백로그)**: "이날 불가" 표시, 알림, 참가 중간상태, 반복모임, 댓글, 사진, PWA.
 
@@ -65,4 +65,4 @@ SESSION_SECRET="<openssl rand -base64 32 로 생성>"
 
 ## 배포
 
-Railway 올인원 — Next.js 앱 컨테이너 + Postgres 플러그인. 빌드/실행 스크립트·환경변수·절차는 **[docs/DEPLOY.md](docs/DEPLOY.md)**. (프로덕션 빌드 검증 완료, 실제 배포는 미실행)
+Railway 올인원 — Next.js 앱 컨테이너 + Postgres 플러그인. 빌드/실행 스크립트·환경변수·절차는 **[docs/DEPLOY.md](docs/DEPLOY.md)**. (**배포 완료** — 앱+Postgres 가동, `DATABASE_URL`·`SESSION_SECRET`·`ADMIN_NAMES` 설정. 함정: Postgres 플러그인의 `DATABASE_URL`을 앱 서비스에 **참조 변수로 연결**해야 함.)
