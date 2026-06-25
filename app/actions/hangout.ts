@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/app/generated/prisma/client";
 import { getUser } from "@/lib/dal";
 
 // 약속("집합") 띄우기. date는 "YYYY-MM-DD"(날짜만, ADR 0004). 멤버만 가능.
@@ -57,10 +58,21 @@ export async function toggleAttendance(formData: FormData) {
     where: { hangoutId_userId: { hangoutId, userId: user.id } },
   });
 
-  if (existing) {
-    await prisma.attendance.delete({ where: { id: existing.id } });
-  } else {
-    await prisma.attendance.create({ data: { hangoutId, userId: user.id } });
+  // 더블탭/동시요청 레이스: 둘 다 existing=null로 읽고 둘 다 create → P2002,
+  // 또는 둘 다 delete → P2025. 원하는 최종 상태는 이미 만족되므로 무해, 흡수한다.
+  try {
+    if (existing) {
+      await prisma.attendance.delete({ where: { id: existing.id } });
+    } else {
+      await prisma.attendance.create({ data: { hangoutId, userId: user.id } });
+    }
+  } catch (e) {
+    if (
+      !(e instanceof Prisma.PrismaClientKnownRequestError) ||
+      !["P2002", "P2025"].includes(e.code)
+    ) {
+      throw e;
+    }
   }
 
   revalidatePath(`/groups/${hangout.groupId}`);

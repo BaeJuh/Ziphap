@@ -252,6 +252,11 @@ export default function GroupCalendar({
               >
                 {pending ? "띄우는 중…" : "띄우기"}
               </button>
+              {state && !state.ok && (
+                <p className="text-[13px] font-semibold text-accent">
+                  띄우기에 실패했어요. 다시 시도해 주세요.
+                </p>
+              )}
             </form>
           </div>
         </>
