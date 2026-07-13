@@ -232,6 +232,7 @@ export default function GroupCalendar({
                 <input
                   name="timeText"
                   required
+                  maxLength={50}
                   autoFocus
                   placeholder="예: 금요일 퇴근 후 7시쯤"
                   className="w-full rounded-lg border border-line bg-card px-3 py-2.5 text-sm text-txt placeholder:text-muted/60 focus:border-accent focus:outline-none"
@@ -241,6 +242,7 @@ export default function GroupCalendar({
                 <label className="mb-1.5 block text-xs text-muted">한 줄</label>
                 <input
                   name="note"
+                  maxLength={100}
                   placeholder="예: 한잔 ㄱ? 적당히 마실 사람"
                   className="w-full rounded-lg border border-line bg-card px-3 py-2.5 text-sm text-txt placeholder:text-muted/60 focus:border-accent focus:outline-none"
                 />

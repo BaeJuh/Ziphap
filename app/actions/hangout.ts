@@ -16,9 +16,11 @@ export async function createHangout(
 
   const groupId = String(formData.get("groupId") ?? "");
   const date = String(formData.get("date") ?? "");
-  const timeText = String(formData.get("timeText") ?? "").trim();
-  const note = String(formData.get("note") ?? "").trim();
-  if (!groupId || !date || !timeText) return { ok: false };
+  const timeText = String(formData.get("timeText") ?? "").trim().slice(0, 50);
+  const note = String(formData.get("note") ?? "").trim().slice(0, 100);
+  if (!groupId || !timeText) return { ok: false };
+  // 정상 UI는 항상 유효한 값을 보냄 — 조작된 요청의 Invalid Date → Prisma throw 방지
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false };
 
   const membership = await prisma.membership.findUnique({
     where: { userId_groupId: { userId: user.id, groupId } },

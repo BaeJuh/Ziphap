@@ -28,6 +28,7 @@ export default async function Home() {
             name="name"
             placeholder="이름만 입력하면 끝"
             required
+            maxLength={20}
             autoFocus
             className="rounded-lg border border-line bg-card px-4 py-3 text-txt placeholder:text-muted/60 focus:border-accent focus:outline-none"
           />
@@ -94,6 +95,7 @@ export default async function Home() {
             name="name"
             placeholder="새 그룹 이름"
             required
+            maxLength={30}
             className="flex-1 rounded-lg border border-line bg-card px-4 py-3 text-txt placeholder:text-muted/60 focus:border-accent focus:outline-none"
           />
           <button

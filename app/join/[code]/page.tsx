@@ -29,6 +29,7 @@ export default async function JoinPage({
             name="name"
             placeholder="이름을 입력하면 참가"
             required
+            maxLength={20}
             autoFocus
             className="rounded-lg border border-line bg-card px-4 py-3 text-txt placeholder:text-muted/60 focus:border-accent focus:outline-none"
           />
@@ -58,7 +59,7 @@ export default async function JoinPage({
       </div>
 
       <form action={joinGroup} className="w-full max-w-xs">
-        <input type="hidden" name="groupId" value={group.id} />
+        <input type="hidden" name="code" value={code} />
         <button
           type="submit"
           className="w-full rounded-lg bg-accent py-3 font-extrabold text-white transition-opacity hover:opacity-90"
