@@ -49,6 +49,7 @@
 1. **인증 정식화** — 현재 이름-only(비번 없음, 사칭 가능, ADR 0003). 지인 소수에선 OK. 공개 확장 시 OAuth(카카오/구글) + User `isAdmin`/role로.
 2. **`/admin` 인증 승격** — 현재 `ADMIN_NAMES` 이름 게이트인데 이름-only라 "admin"은 추측 가능(임시). 별도 비번 쿠키 또는 `isAdmin` 플래그로 교체.
 3. 그 외: 토글 실패 피드백, `theme-toggle` 린트 정리(`useSyncExternalStore`), README "MVP 제외(백로그)".
+4. PWA(→웹푸시 알림 기반 공사) — 제안됐으나 **후순위로 결정** (2026-07-13).
 
 남은 다듬기: 월 이동은 4주 롤링으로 대체했으므로 불필요([ADR 0005](adr/0005-rolling-4week-calendar.md)).
 
