@@ -26,6 +26,10 @@
 
 린트에 `theme-toggle.tsx` `set-state-in-effect` 에러 2건 남음 — 하이드레이션 후 테마 동기화용 의도된 패턴, Next 16은 빌드 시 린트 안 돌려 배포 무관. 추후 `useSyncExternalStore`로 정리 가능(백로그).
 
+### "안함" 응답 추가 (2026-07-13, [ADR 0006](adr/0006-attendance-status.md))
+
+이진 참가를 3상태(참가/안함/무반응)로 개정. `Attendance.status` enum(`GOING`|`NOT_GOING`, 기본 GOING) + 마이그레이션 `20260713000000_attendance_status`(수기 SQL). `toggleAttendance` → `setAttendance(hangoutId, status)` — 같은 버튼 재탭 시 해제. UI는 카드에 "참가 | 안함" 두 버튼, 안함은 `안함 N` 카운트만(이름 비노출, 압박 최소화), 무반응자 비표시.
+
 | 슬라이스 | 상태 |
 |---|---|
 | 1. 걸어다니는 골격 (로그인→그룹→캘린더) | ✅ |
@@ -53,7 +57,7 @@
 - **인증** ([ADR 0003](adr/0003-db-credentials-auth.md)) — `lib/session.ts`(jose 쿠키), `lib/dal.ts`(`getUser`), `app/actions/auth.ts`(`login`/`logout`). 이름만 입력, 비번·이메일 없음.
 - **DB** — `prisma/schema.prisma`(5모델), `lib/prisma.ts`(PrismaPg 어댑터 싱글톤), `docker-compose.yml`(로컬 Postgres).
 - **그룹/초대** — `app/actions/group.ts`(`createGroup`/`joinGroup`), `app/join/[code]/page.tsx`, `app/groups/[id]/invite-link.tsx`.
-- **약속/참가** — `app/actions/hangout.ts`(`createHangout`/`toggleAttendance`), `app/groups/[id]/group-calendar.tsx`(캘린더+바텀시트+생성시트, 클라이언트).
+- **약속/참가** — `app/actions/hangout.ts`(`createHangout`/`setAttendance` — 참가/안함/해제, ADR 0006), `app/groups/[id]/group-calendar.tsx`(캘린더+바텀시트+생성시트, 클라이언트).
 - **캘린더** ([ADR 0005](adr/0005-rolling-4week-calendar.md)) — `lib/calendar.ts`(오늘부터 4주, Asia/Seoul 기준·UTC 산술). 칸=띄운 사람 이니셜 아바타(내가 가는 약속은 초록), 전체는 날짜 탭→바텀시트 목록.
 - **디자인** — `app/globals.css`(토큰 + night/clean 테마 + 키프레임/스크롤바), `app/theme-toggle.tsx`, `app/groups/[id]/group-switcher.tsx`, `app/layout.tsx`(430px 프레임).
 - **운영 현황** — `app/admin/page.tsx`(읽기 전용). `ADMIN_NAMES`(쉼표구분 이름) 허용목록 게이트 → 비admin·미설정은 `notFound`(fail-closed). 요약수치(유저·그룹·약속·참가)·그룹별 멤버/약속수·최근 약속 8개. UI에 링크 없는 숨은 라우트. 인증은 임시(위 백로그 2).

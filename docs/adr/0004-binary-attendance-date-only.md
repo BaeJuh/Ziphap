@@ -1,6 +1,6 @@
 # ADR 0004 — 이진 Attendance + 날짜만 저장 데이터 모델
 
-- 상태: 채택(Accepted)
+- 상태: 일부 개정됨 — 결정 1(이진 Attendance)은 [ADR 0006](0006-attendance-status.md)이 대체. 결정 2(날짜만 저장)는 유효.
 - 날짜: 2026-06-22
 
 ## 맥락

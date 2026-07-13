@@ -65,15 +65,21 @@ model Hangout {
   attendances Attendance[]
 }
 
-// 이진(binary): 행 존재 = 참가 / 없음 = 무반응. status 컬럼 없음 (ADR 0004).
+// 행 존재 = 응답(참가/안함) / 없음 = 무반응 (ADR 0004, 0006에서 status 추가).
 model Attendance {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   hangoutId String
   userId    String
-  createdAt DateTime @default(now())
+  status    AttendanceStatus @default(GOING)
+  createdAt DateTime         @default(now())
 
   hangout Hangout @relation(fields: [hangoutId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([hangoutId, userId])
+}
+
+enum AttendanceStatus {
+  GOING // 참가
+  NOT_GOING // 안함
 }

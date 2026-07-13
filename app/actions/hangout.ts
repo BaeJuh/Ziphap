@@ -41,16 +41,19 @@ export async function createHangout(
   return { ok: true };
 }
 
-// 참가 토글 (이진, ADR 0004): Attendance 행 있으면 삭제(불참), 없으면 생성(참가).
-export async function toggleAttendance(formData: FormData) {
+// 참가 응답 (ADR 0004→0006): 참가/안함 중 하나를 선택, 같은 걸 다시 누르면 해제(무반응).
+// 행 존재 = 응답(status), 없음 = 무반응.
+export async function setAttendance(formData: FormData) {
   const user = await getUser();
   const hangoutId = String(formData.get("hangoutId") ?? "");
+  const status = String(formData.get("status") ?? "");
   if (!user || !hangoutId) return;
+  if (status !== "GOING" && status !== "NOT_GOING") return;
 
   const hangout = await prisma.hangout.findUnique({ where: { id: hangoutId } });
   if (!hangout) return;
 
-  // 그룹 멤버만 참가 가능
+  // 그룹 멤버만 응답 가능
   const membership = await prisma.membership.findUnique({
     where: { userId_groupId: { userId: user.id, groupId: hangout.groupId } },
   });
@@ -60,13 +63,17 @@ export async function toggleAttendance(formData: FormData) {
     where: { hangoutId_userId: { hangoutId, userId: user.id } },
   });
 
-  // 더블탭/동시요청 레이스: 둘 다 existing=null로 읽고 둘 다 create → P2002,
-  // 또는 둘 다 delete → P2025. 원하는 최종 상태는 이미 만족되므로 무해, 흡수한다.
+  // 더블탭/동시요청 레이스: 둘 다 create → P2002, 둘 다 delete → P2025.
+  // 원하는 최종 상태는 이미 만족되므로 무해, 흡수한다.
   try {
-    if (existing) {
+    if (existing?.status === status) {
       await prisma.attendance.delete({ where: { id: existing.id } });
     } else {
-      await prisma.attendance.create({ data: { hangoutId, userId: user.id } });
+      await prisma.attendance.upsert({
+        where: { hangoutId_userId: { hangoutId, userId: user.id } },
+        update: { status },
+        create: { hangoutId, userId: user.id, status },
+      });
     }
   } catch (e) {
     if (

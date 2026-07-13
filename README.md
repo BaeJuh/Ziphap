@@ -21,7 +21,7 @@ User ─(Membership)─ Group ─1:N─ Hangout ─1:N─ Attendance
 
 - **Group**: `name`, `inviteCode`(고유 — 초대 링크/코드)
 - **Hangout**: `groupId`, `creatorId`, `date`(날짜만), `timeText`(자유텍스트 "퇴근후"), `note`(한 줄)
-- **Attendance**: 행 존재 = 참가 / 없음 = 무반응 (**이진 — `status` 컬럼 없음**, [ADR 0004](docs/adr/0004-binary-attendance-date-only.md))
+- **Attendance**: `status`(참가 `GOING` / 안함 `NOT_GOING`) — 행 없음 = 무반응. 3상태 ([ADR 0006](docs/adr/0006-attendance-status.md), 이진에서 개정)
 - `date`만 저장(시간은 자유 텍스트) → 타임존 회피
 
 ## 빌드 슬라이스 (전부 완료 ✅)
@@ -34,7 +34,7 @@ User ─(Membership)─ Group ─1:N─ Hangout ─1:N─ Attendance
 
 > MVP 완성 + 배포 전 코드리뷰 반영 + **Railway 배포 완료**. 읽기 전용 운영 현황 `/admin` 추가(임시 인증). 진행기록 → [docs/PROGRESS.md](docs/PROGRESS.md), [docs/DEPLOY.md](docs/DEPLOY.md).
 
-**MVP 제외(백로그)**: "이날 불가" 표시, 알림, 참가 중간상태, 반복모임, 댓글, 사진, PWA.
+**MVP 제외(백로그)**: 알림, 참가 중간상태(미정), 반복모임, 댓글, 사진, PWA. (~~"이날 불가" 표시~~ → "안함" 응답으로 반영, ADR 0006)
 
 ## 디자인 방향
 

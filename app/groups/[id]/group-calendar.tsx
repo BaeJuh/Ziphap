@@ -1,15 +1,16 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { createHangout, toggleAttendance } from "@/app/actions/hangout";
+import { createHangout, setAttendance } from "@/app/actions/hangout";
 
 export type Hangout = {
   id: string;
   timeText: string;
   note: string;
   creatorName: string;
-  attendees: string[]; // 참가자 이름
-  mine: boolean; // 내가 참가 중인지
+  attendees: string[]; // 참가자(GOING) 이름
+  notGoingCount: number; // "안함" 응답 수 (이름은 비노출 — 압박 최소화)
+  myStatus: "GOING" | "NOT_GOING" | null; // null = 무반응
 };
 
 // 참가자 아바타 스택 (목업 .avs/.av): 첫 글자 원, 최대 4 + "+N"
@@ -124,7 +125,9 @@ export default function GroupCalendar({
                       key={h.id}
                       className={
                         "flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ring-2 ring-card " +
-                        (h.mine ? "bg-accent2 text-[#06241a] " : "bg-accent text-white ") +
+                        (h.myStatus === "GOING"
+                          ? "bg-accent2 text-[#06241a] "
+                          : "bg-accent text-white ") +
                         (i > 0 ? "-ml-1.5" : "")
                       }
                     >
@@ -183,19 +186,36 @@ export default function GroupCalendar({
                   </div>
                   <span className="text-xs text-muted">
                     {h.attendees.length}명 참가
+                    {h.notGoingCount > 0 && ` · 안함 ${h.notGoingCount}`}
                   </span>
-                  <form action={toggleAttendance} className="ml-auto">
+                  {/* 같은 버튼 다시 누르면 해제(무반응 복귀) — setAttendance */}
+                  <form action={setAttendance} className="ml-auto flex gap-1.5">
                     <input type="hidden" name="hangoutId" value={h.id} />
                     <button
                       type="submit"
+                      name="status"
+                      value="GOING"
                       className={
-                        "rounded-md px-4 py-2 text-[13px] font-bold " +
-                        (h.mine
+                        "rounded-md px-3 py-2 text-[13px] font-bold " +
+                        (h.myStatus === "GOING"
                           ? "bg-accent2 text-[#06241a]"
                           : "border border-line bg-chip text-txt")
                       }
                     >
-                      {h.mine ? "참가중 ✓" : "참가"}
+                      {h.myStatus === "GOING" ? "참가중 ✓" : "참가"}
+                    </button>
+                    <button
+                      type="submit"
+                      name="status"
+                      value="NOT_GOING"
+                      className={
+                        "rounded-md px-3 py-2 text-[13px] font-bold " +
+                        (h.myStatus === "NOT_GOING"
+                          ? "bg-line text-txt"
+                          : "border border-line bg-chip text-muted")
+                      }
+                    >
+                      {h.myStatus === "NOT_GOING" ? "안함 ✓" : "안함"}
                     </button>
                   </form>
                 </div>

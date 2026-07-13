@@ -68,8 +68,12 @@ export default async function GroupPage({
       timeText: r.timeText,
       note: r.note,
       creatorName: r.creator.name,
-      attendees: r.attendances.map((a) => a.user.name),
-      mine: r.attendances.some((a) => a.user.id === user.id),
+      attendees: r.attendances
+        .filter((a) => a.status === "GOING")
+        .map((a) => a.user.name),
+      notGoingCount: r.attendances.filter((a) => a.status === "NOT_GOING").length,
+      myStatus:
+        r.attendances.find((a) => a.user.id === user.id)?.status ?? null,
     });
   }
 
