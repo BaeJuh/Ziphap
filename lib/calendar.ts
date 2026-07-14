@@ -8,10 +8,14 @@ export type CalendarDay = {
   weekday: number; // 0=월 … 5=토, 6=일
 };
 
+// 시각(instant)을 서울 기준 "YYYY-MM-DD"로. UTC 저장값 표시용 — 서버 TZ 무관.
+// (@db.Date 값은 UTC 자정 왕복이므로 toISOString().slice(0,10)이 맞음 — 혼용 주의)
+export function ymdSeoul(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(d);
+}
+
 export function buildCalendarWeeks(weeks = 4): CalendarDay[][] {
-  const todayIso = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-  }).format(new Date()); // "YYYY-MM-DD"
+  const todayIso = ymdSeoul(new Date()); // "YYYY-MM-DD"
 
   const [ty, tm, td] = todayIso.split("-").map(Number);
   const today = new Date(Date.UTC(ty, tm - 1, td));

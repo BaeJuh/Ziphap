@@ -11,8 +11,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // suppressHydrationWarning: body의 인라인 스크립트가 하이드레이션 전에
+  // data-theme를 붙여 html 속성이 서버 HTML과 달라짐 — 이 요소만 경고 제외
   return (
-    <html lang="ko" className="h-full antialiased">
+    <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full bg-bg text-txt">
         {/* 저장된 테마를 페인트 전에 적용 (깜빡임 방지) */}
         <script

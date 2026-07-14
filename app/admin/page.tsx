@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
+import { ymdSeoul } from "@/lib/calendar";
 
 // 읽기 전용 운영 현황. ADMIN_NAMES(쉼표구분 이름 목록)에 든 사용자만 접근.
 // 미설정 시 목록이 비어 모두 notFound → fail-closed (admin 기본 차단).
@@ -12,6 +13,7 @@ function adminNames() {
     .filter(Boolean);
 }
 
+// @db.Date(UTC 자정) 전용 — createdAt 같은 시각(instant)은 ymdSeoul 사용.
 function ymd(d: Date) {
   return d.toISOString().slice(0, 10);
 }
@@ -57,7 +59,7 @@ export default async function AdminPage() {
     <>
       <header className="sticky top-0 z-10 border-b border-line bg-bg/85 px-[18px] py-4 backdrop-blur">
         <Link href="/" className="text-xs text-muted hover:text-txt">
-          ‹ 홈
+          <span className="relative -top-0.5">‹</span> 홈
         </Link>
         <h1 className="mt-2 text-lg font-bold">운영 현황</h1>
         <p className="text-xs text-muted">읽기 전용 · {user.name}</p>
@@ -98,7 +100,7 @@ export default async function AdminPage() {
                   <div className="min-w-0">
                     <div className="truncate text-sm font-bold">{g.name}</div>
                     <div className="text-[11px] text-muted">
-                      {ymd(g.createdAt)} 생성
+                      {ymdSeoul(g.createdAt)} 생성
                     </div>
                   </div>
                   <div className="ml-3 flex shrink-0 gap-3 text-xs text-muted tabular-nums">
