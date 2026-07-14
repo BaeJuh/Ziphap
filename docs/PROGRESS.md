@@ -38,6 +38,9 @@
 - **admin 생성일 서울 기준** — instant를 `toISOString()`(UTC)으로 표시하던 버그. `lib/calendar.ts`에 `ymdSeoul()` 추가. 규칙: instant 표시=`ymdSeoul`, `@db.Date`=`toISOString().slice(0,10)`(UTC 자정 왕복이라 그대로).
 - **테마 하이드레이션 경고 억제** — 인라인 스크립트가 하이드레이션 전 `data-theme`를 붙여 발생. `<html suppressHydrationWarning>`(표준 패턴, 이 요소 속성만 제외).
 - 백링크 `‹` 글리프 2px 상향 정렬(그룹/admin).
+- **그룹 나가기** — 홈 그룹 목록 행에서(일정 화면은 캘린더에 집중). `leaveGroup`: 내 참가 응답 정리 + 멤버십 삭제($transaction), 내가 띄운 집합은 유지. 재가입 가능.
+- **과거 날짜 집합 생성 차단** — 서버 가드(`isPastIso`, 조작 요청 포함) + 과거 칸 dim/FAB 숨김. 보기는 유지.
+- **4각도 리뷰(재사용·단순화·효율·깊이) 최적화 반영** — 2단계 확인 공용 `ConfirmSubmit`(`app/confirm-submit.tsx`), 서버 액션 단일쿼리화(update/delete에 `where:{id,creatorId}` — 2왕복→1왕복+원자성), 시트 상태 단일화(`"create"|Hangout|null`), 정책 헬퍼(`isPastIso`/`ymdDateOnly`) `lib/calendar.ts` 집약. 스킵: 길이제한 상수 공유·백링크 컴포넌트화(규모 대비 과함).
 
 | 슬라이스 | 상태 |
 |---|---|
@@ -51,7 +54,7 @@
 
 ## 다음 할 일
 
-7/14 작업분 커밋됨 — **푸시·배포는 보류 중**(라이브 확인도 함께 보류). 남은 건 푸시 후 **라이브 도메인에서 전체 흐름 최종 확인**(로그인→그룹→약속→참가→초대→수정/삭제, `/admin`).
+7/14 작업분 커밋됨 — **푸시·배포는 보류**(사용자가 가능 시점을 알려줄 예정). 그때 푸시 → Railway 자동 배포 → **라이브 전체 흐름 확인**(로그인→그룹→초대→집합→참가→수정/삭제→나가기, `/admin`).
 
 **백로그 (공개 확장 시):**
 
@@ -66,9 +69,10 @@
 
 - **인증** ([ADR 0003](adr/0003-db-credentials-auth.md)) — `lib/session.ts`(jose 쿠키), `lib/dal.ts`(`getUser`), `app/actions/auth.ts`(`login`/`logout`). 이름만 입력, 비번·이메일 없음.
 - **DB** — `prisma/schema.prisma`(5모델), `lib/prisma.ts`(PrismaPg 어댑터 싱글톤), `docker-compose.yml`(로컬 Postgres).
-- **그룹/초대** — `app/actions/group.ts`(`createGroup`/`joinGroup`), `app/join/[code]/page.tsx`, `app/groups/[id]/invite-link.tsx`.
+- **그룹/초대** — `app/actions/group.ts`(`createGroup`/`joinGroup`/`leaveGroup` — 나가기는 홈 목록에서), `app/join/[code]/page.tsx`, `app/groups/[id]/invite-link.tsx`.
+- **공용 UI** — `app/confirm-submit.tsx`(파괴적 액션 2단계 확인 — 집합 삭제·그룹 나가기가 사용), `app/theme-toggle.tsx`.
 - **약속/참가** — `app/actions/hangout.ts`(`createHangout`/`updateHangout`/`deleteHangout` — 수정·삭제는 띄운 사람만 / `setAttendance` — 참가/안함/해제, ADR 0006), `app/groups/[id]/group-calendar.tsx`(캘린더+바텀시트+생성·수정시트, 클라이언트).
-- **캘린더** ([ADR 0005](adr/0005-rolling-4week-calendar.md)) — `lib/calendar.ts`(오늘부터 4주, Asia/Seoul 기준·UTC 산술). 칸=띄운 사람 이니셜 아바타(내가 가는 약속은 초록), 전체는 날짜 탭→바텀시트 목록.
+- **캘린더** ([ADR 0005](adr/0005-rolling-4week-calendar.md)) — `lib/calendar.ts`(4주 그리드 + 날짜 헬퍼: `ymdSeoul`=시각 표시 / `ymdDateOnly`=@db.Date 왕복 / `isPastIso`=과거 정책). 칸=띄운 사람 이니셜 아바타(내가 가는 약속은 초록), 전체는 날짜 탭→바텀시트 목록.
 - **디자인** — `app/globals.css`(토큰 + night/clean 테마 + 키프레임/스크롤바), `app/theme-toggle.tsx`, `app/groups/[id]/group-switcher.tsx`, `app/layout.tsx`(430px 프레임).
 - **운영 현황** — `app/admin/page.tsx`(읽기 전용). `ADMIN_NAMES`(쉼표구분 이름) 허용목록 게이트 → 비admin·미설정은 `notFound`(fail-closed). 요약수치(유저·그룹·약속·참가)·그룹별 멤버/약속수·최근 약속 8개. UI에 링크 없는 숨은 라우트. 인증은 임시(위 백로그 2).
 
