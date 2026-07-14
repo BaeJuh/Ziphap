@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { getUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import { buildCalendarWeeks } from "@/lib/calendar";
+import { buildCalendarWeeks, ymdDateOnly } from "@/lib/calendar";
 import GroupCalendar, { type Hangout } from "./group-calendar";
 import InviteLink from "./invite-link";
 import GroupSwitcher from "./group-switcher";
@@ -62,7 +62,7 @@ export default async function GroupPage({
 
   const hangoutsByDate: Record<string, Hangout[]> = {};
   for (const r of rows) {
-    const iso = r.date.toISOString().slice(0, 10);
+    const iso = ymdDateOnly(r.date);
     (hangoutsByDate[iso] ??= []).push({
       id: r.id,
       timeText: r.timeText,

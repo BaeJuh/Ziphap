@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import { ymdSeoul } from "@/lib/calendar";
+import { ymdDateOnly, ymdSeoul } from "@/lib/calendar";
 
 // 읽기 전용 운영 현황. ADMIN_NAMES(쉼표구분 이름 목록)에 든 사용자만 접근.
 // 미설정 시 목록이 비어 모두 notFound → fail-closed (admin 기본 차단).
@@ -11,11 +11,6 @@ function adminNames() {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-}
-
-// @db.Date(UTC 자정) 전용 — createdAt 같은 시각(instant)은 ymdSeoul 사용.
-function ymd(d: Date) {
-  return d.toISOString().slice(0, 10);
 }
 
 export default async function AdminPage() {
@@ -134,7 +129,7 @@ export default async function AdminPage() {
                       {h.timeText}
                     </span>
                     <span className="shrink-0 text-[11px] text-muted tabular-nums">
-                      {ymd(h.date)}
+                      {ymdDateOnly(h.date)}
                     </span>
                   </div>
                   <div className="mt-1 text-[11px] text-muted">

@@ -42,3 +42,23 @@ export async function joinGroup(formData: FormData) {
 
   redirect(`/groups/${group.id}`);
 }
+
+// 그룹 나가기. 내 참가 응답은 정리하고(나간 사람이 "참가중"으로 남지 않게),
+// 내가 띄운 집합은 유지(다른 멤버가 참가 중일 수 있음 — 재가입 시 그대로).
+export async function leaveGroup(formData: FormData) {
+  const user = await getUser();
+  const groupId = String(formData.get("groupId") ?? "");
+  if (!user || !groupId) return;
+
+  // deleteMany: 이미 나갔거나 멤버가 아니어도 무해(count 0). 한 트랜잭션 = 왕복 1회 + 원자성.
+  await prisma.$transaction([
+    prisma.attendance.deleteMany({
+      where: { userId: user.id, hangout: { groupId } },
+    }),
+    prisma.membership.deleteMany({
+      where: { userId: user.id, groupId },
+    }),
+  ]);
+
+  redirect("/");
+}

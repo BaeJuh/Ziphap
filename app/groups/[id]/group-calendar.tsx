@@ -7,6 +7,8 @@ import {
   deleteHangout,
   setAttendance,
 } from "@/app/actions/hangout";
+import { isPastIso } from "@/lib/calendar";
+import ConfirmSubmit from "@/app/confirm-submit";
 
 export type Hangout = {
   id: string;
@@ -79,27 +81,23 @@ export default function GroupCalendar({
   todayIso: string;
 }) {
   const [selIso, setSelIso] = useState(todayIso);
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [panelBig, setPanelBig] = useState(false);
-  const [editing, setEditing] = useState<Hangout | null>(null); // 수정 대상
-  const [confirmDelId, setConfirmDelId] = useState<string | null>(null); // "정말 삭제?" 대기 중
+  // 시트 상태 하나로: null=닫힘, "create"=생성, Hangout=그 집합 수정
+  const [sheet, setSheet] = useState<"create" | Hangout | null>(null);
   const [state, formAction, pending] = useActionState(createHangout, null);
   const [editState, editAction, editPending] = useActionState(updateHangout, null);
 
+  const editing = sheet !== null && sheet !== "create" ? sheet : null;
+  const sheetState = editing ? editState : state;
+  const sheetPending = editing ? editPending : pending;
+
   // 생성/수정 성공 시 시트 닫기
   useEffect(() => {
-    if (state?.ok) setSheetOpen(false);
+    if (state?.ok) setSheet(null);
   }, [state]);
   useEffect(() => {
-    if (editState?.ok) setEditing(null);
+    if (editState?.ok) setSheet(null);
   }, [editState]);
-
-  // 삭제 확인은 3초 지나면 원래대로 (실수 방지)
-  useEffect(() => {
-    if (!confirmDelId) return;
-    const t = setTimeout(() => setConfirmDelId(null), 3000);
-    return () => clearTimeout(t);
-  }, [confirmDelId]);
 
   const selList = hangoutsByDate[selIso] ?? [];
 
@@ -117,6 +115,7 @@ export default function GroupCalendar({
         {days.map((d) => {
           const list = hangoutsByDate[d.iso] ?? [];
           const selected = d.iso === selIso;
+          const isPast = isPastIso(d.iso, todayIso);
           return (
             <button
               key={d.iso}
@@ -126,7 +125,8 @@ export default function GroupCalendar({
                 (selected
                   ? "border-accent bg-accent/10 "
                   : "border-transparent bg-card hover:border-line ") +
-                (d.isToday ? "outline outline-2 -outline-offset-2 outline-accent2" : "")
+                (d.isToday ? "outline outline-2 -outline-offset-2 outline-accent2 " : "") +
+                (isPast ? "opacity-55" : "")
               }
             >
               <span
@@ -203,29 +203,18 @@ export default function GroupCalendar({
                   {h.isMine && (
                     <span className="ml-auto flex items-center gap-2.5">
                       <button
-                        onClick={() => setEditing(h)}
+                        onClick={() => setSheet(h)}
                         className="font-semibold text-sat transition-opacity hover:opacity-75"
                       >
                         수정
                       </button>
-                      {confirmDelId === h.id ? (
-                        <form action={deleteHangout} className="contents">
-                          <input type="hidden" name="hangoutId" value={h.id} />
-                          <button
-                            type="submit"
-                            className="animate-[fade-in_0.15s_ease] font-bold text-accent"
-                          >
-                            정말 삭제?
-                          </button>
-                        </form>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmDelId(h.id)}
-                          className="font-semibold text-accent transition-opacity hover:opacity-75"
-                        >
-                          삭제
-                        </button>
-                      )}
+                      <ConfirmSubmit
+                        action={deleteHangout}
+                        hidden={{ hangoutId: h.id }}
+                        label="삭제"
+                        confirmLabel="정말 삭제?"
+                        triggerClassName="font-semibold text-accent transition-opacity hover:opacity-75"
+                      />
                     </span>
                   )}
                 </div>
@@ -274,25 +263,24 @@ export default function GroupCalendar({
         )}
       </div>
 
-      {/* FAB */}
-      <div className="pointer-events-none fixed bottom-[22px] left-1/2 z-10 w-[min(398px,calc(100%-32px))] -translate-x-1/2">
-        <button
-          onClick={() => setSheetOpen(true)}
-          className="pointer-events-auto w-full rounded-lg bg-accent py-[15px] text-[15px] font-extrabold text-white shadow-[0_8px_24px_rgba(255,92,92,.35)]"
-        >
-          + 집합 띄우기
-        </button>
-      </div>
+      {/* FAB — 과거 날짜 선택 중엔 숨김 (보기만 가능, 생성은 오늘부터) */}
+      {!isPastIso(selIso, todayIso) && (
+        <div className="pointer-events-none fixed bottom-[22px] left-1/2 z-10 w-[min(398px,calc(100%-32px))] -translate-x-1/2">
+          <button
+            onClick={() => setSheet("create")}
+            className="pointer-events-auto w-full rounded-lg bg-accent py-[15px] text-[15px] font-extrabold text-white shadow-[0_8px_24px_rgba(255,92,92,.35)]"
+          >
+            + 집합 띄우기
+          </button>
+        </div>
+      )}
 
       {/* 생성/수정 시트 (공용) */}
-      {(sheetOpen || editing) && (
+      {sheet && (
         <>
           <div
             className="fixed inset-0 z-20 animate-[fade-in_0.2s_ease] bg-black/50"
-            onClick={() => {
-              setSheetOpen(false);
-              setEditing(null);
-            }}
+            onClick={() => setSheet(null)}
           />
           <div className="fixed bottom-0 left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2 animate-[slide-up_0.25s_ease] rounded-t-2xl bg-card2 px-[18px] pb-7 pt-5">
             <h3 className="mb-3.5 text-base font-bold">
@@ -335,30 +323,22 @@ export default function GroupCalendar({
               </div>
               <button
                 type="submit"
-                disabled={editing ? editPending : pending}
+                disabled={sheetPending}
                 className="mt-1.5 w-full rounded-lg bg-accent py-3.5 text-[15px] font-extrabold text-white disabled:opacity-60"
               >
-                {editing
-                  ? editPending
+                {sheetPending
+                  ? editing
                     ? "수정 중…"
-                    : "수정하기"
-                  : pending
-                    ? "띄우는 중…"
+                    : "띄우는 중…"
+                  : editing
+                    ? "수정하기"
                     : "띄우기"}
               </button>
-              {editing
-                ? editState &&
-                  !editState.ok && (
-                    <p className="text-[13px] font-semibold text-accent">
-                      수정에 실패했어요. 다시 시도해 주세요.
-                    </p>
-                  )
-                : state &&
-                  !state.ok && (
-                    <p className="text-[13px] font-semibold text-accent">
-                      띄우기에 실패했어요. 다시 시도해 주세요.
-                    </p>
-                  )}
+              {sheetState && !sheetState.ok && (
+                <p className="text-[13px] font-semibold text-accent">
+                  {editing ? "수정" : "띄우기"}에 실패했어요. 다시 시도해 주세요.
+                </p>
+              )}
             </form>
           </div>
         </>

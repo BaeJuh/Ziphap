@@ -2,8 +2,9 @@ import Link from "next/link";
 import { getUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { login, logout } from "@/app/actions/auth";
-import { createGroup } from "@/app/actions/group";
+import { createGroup, leaveGroup } from "@/app/actions/group";
 import ThemeToggle from "@/app/theme-toggle";
+import ConfirmSubmit from "@/app/confirm-submit";
 
 function Logo({ className = "" }: { className?: string }) {
   return (
@@ -77,13 +78,23 @@ export default async function Home() {
           ) : (
             <ul className="flex flex-col gap-2">
               {groups.map((g) => (
-                <li key={g.id}>
+                <li
+                  key={g.id}
+                  className="flex items-center gap-3 rounded-lg border border-line bg-card px-4 transition-colors hover:border-muted"
+                >
                   <Link
                     href={`/groups/${g.id}`}
-                    className="block rounded-lg border border-line bg-card px-4 py-3 font-semibold transition-colors hover:border-muted"
+                    className="min-w-0 flex-1 truncate py-3 font-semibold"
                   >
                     {g.name}
                   </Link>
+                  <ConfirmSubmit
+                    action={leaveGroup}
+                    hidden={{ groupId: g.id }}
+                    label="나가기"
+                    confirmLabel="정말 나가기?"
+                    triggerClassName="text-[11px] font-semibold text-muted transition-colors hover:text-accent"
+                  />
                 </li>
               ))}
             </ul>
