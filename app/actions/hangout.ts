@@ -41,6 +41,59 @@ export async function createHangout(
   return { ok: true };
 }
 
+// 집합 수정 — 띄운 사람만, timeText/note만(날짜 변경은 삭제 후 재생성).
+export async function updateHangout(
+  _prev: unknown,
+  formData: FormData,
+): Promise<{ ok: boolean }> {
+  const user = await getUser();
+  if (!user) return { ok: false };
+
+  const hangoutId = String(formData.get("hangoutId") ?? "");
+  const timeText = String(formData.get("timeText") ?? "").trim().slice(0, 50);
+  const note = String(formData.get("note") ?? "").trim().slice(0, 100);
+  if (!hangoutId || !timeText) return { ok: false };
+
+  const hangout = await prisma.hangout.findUnique({ where: { id: hangoutId } });
+  if (!hangout || hangout.creatorId !== user.id) return { ok: false };
+
+  try {
+    await prisma.hangout.update({
+      where: { id: hangoutId },
+      data: { timeText, note },
+    });
+  } catch (e) {
+    // 조회와 수정 사이에 삭제됨(P2025) → 실패로 알림
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2025"
+    ) {
+      return { ok: false };
+    }
+    throw e;
+  }
+
+  revalidatePath(`/groups/${hangout.groupId}`);
+  return { ok: true };
+}
+
+// 집합 삭제 — 띄운 사람만. 참가 응답은 cascade로 함께 삭제.
+export async function deleteHangout(formData: FormData) {
+  const user = await getUser();
+  const hangoutId = String(formData.get("hangoutId") ?? "");
+  if (!user || !hangoutId) return;
+
+  const hangout = await prisma.hangout.findUnique({ where: { id: hangoutId } });
+  if (!hangout || hangout.creatorId !== user.id) return;
+
+  // creatorId 조건 포함 원자적 삭제 — 이미 삭제된 경우(count 0)도 무해
+  await prisma.hangout.deleteMany({
+    where: { id: hangoutId, creatorId: user.id },
+  });
+
+  revalidatePath(`/groups/${hangout.groupId}`);
+}
+
 // 참가 응답 (ADR 0004→0006): 참가/안함 중 하나를 선택, 같은 걸 다시 누르면 해제(무반응).
 // 행 존재 = 응답(status), 없음 = 무반응.
 export async function setAttendance(formData: FormData) {

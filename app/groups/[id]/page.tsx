@@ -68,6 +68,7 @@ export default async function GroupPage({
       timeText: r.timeText,
       note: r.note,
       creatorName: r.creator.name,
+      isMine: r.creatorId === user.id,
       attendees: r.attendances
         .filter((a) => a.status === "GOING")
         .map((a) => a.user.name),
@@ -82,7 +83,7 @@ export default async function GroupPage({
       <header className="sticky top-0 z-10 border-b border-line bg-bg/85 px-[18px] py-4 backdrop-blur">
         <div className="flex items-center justify-between">
           <Link href="/" className="text-xs text-muted hover:text-txt">
-            ‹ 내 그룹
+            <span className="relative -top-0.5">‹</span> 내 그룹
           </Link>
           <ThemeToggle />
         </div>

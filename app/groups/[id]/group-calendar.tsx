@@ -1,13 +1,19 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { createHangout, setAttendance } from "@/app/actions/hangout";
+import {
+  createHangout,
+  updateHangout,
+  deleteHangout,
+  setAttendance,
+} from "@/app/actions/hangout";
 
 export type Hangout = {
   id: string;
   timeText: string;
   note: string;
   creatorName: string;
+  isMine: boolean; // 내가 띄운 집합 (수정/삭제 가능)
   attendees: string[]; // 참가자(GOING) 이름
   notGoingCount: number; // "안함" 응답 수 (이름은 비노출 — 압박 최소화)
   myStatus: "GOING" | "NOT_GOING" | null; // null = 무반응
@@ -75,12 +81,25 @@ export default function GroupCalendar({
   const [selIso, setSelIso] = useState(todayIso);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [panelBig, setPanelBig] = useState(false);
+  const [editing, setEditing] = useState<Hangout | null>(null); // 수정 대상
+  const [confirmDelId, setConfirmDelId] = useState<string | null>(null); // "정말 삭제?" 대기 중
   const [state, formAction, pending] = useActionState(createHangout, null);
+  const [editState, editAction, editPending] = useActionState(updateHangout, null);
 
-  // 생성 성공 시 시트 닫기
+  // 생성/수정 성공 시 시트 닫기
   useEffect(() => {
     if (state?.ok) setSheetOpen(false);
   }, [state]);
+  useEffect(() => {
+    if (editState?.ok) setEditing(null);
+  }, [editState]);
+
+  // 삭제 확인은 3초 지나면 원래대로 (실수 방지)
+  useEffect(() => {
+    if (!confirmDelId) return;
+    const t = setTimeout(() => setConfirmDelId(null), 3000);
+    return () => clearTimeout(t);
+  }, [confirmDelId]);
 
   const selList = hangoutsByDate[selIso] ?? [];
 
@@ -179,7 +198,37 @@ export default function GroupCalendar({
               >
                 <div className="text-[15px] font-bold">{h.timeText}</div>
                 {h.note && <div className="mt-0.5 text-[13px] text-muted">{h.note}</div>}
-                <div className="mt-2 text-[11px] text-muted">{h.creatorName} 띄움</div>
+                <div className="mt-2 flex items-center text-[11px] text-muted">
+                  <span>{h.creatorName} 띄움</span>
+                  {h.isMine && (
+                    <span className="ml-auto flex items-center gap-2.5">
+                      <button
+                        onClick={() => setEditing(h)}
+                        className="font-semibold text-sat transition-opacity hover:opacity-75"
+                      >
+                        수정
+                      </button>
+                      {confirmDelId === h.id ? (
+                        <form action={deleteHangout} className="contents">
+                          <input type="hidden" name="hangoutId" value={h.id} />
+                          <button
+                            type="submit"
+                            className="animate-[fade-in_0.15s_ease] font-bold text-accent"
+                          >
+                            정말 삭제?
+                          </button>
+                        </form>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDelId(h.id)}
+                          className="font-semibold text-accent transition-opacity hover:opacity-75"
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </div>
                 <div className="mt-3 flex items-center gap-2">
                   <div className="flex">
                     <Avatars names={h.attendees} />
@@ -211,8 +260,8 @@ export default function GroupCalendar({
                       className={
                         "rounded-md px-3 py-2 text-[13px] font-bold " +
                         (h.myStatus === "NOT_GOING"
-                          ? "bg-line text-txt"
-                          : "border border-line bg-chip text-muted")
+                          ? "bg-txt text-bg"
+                          : "border border-line bg-chip text-txt")
                       }
                     >
                       {h.myStatus === "NOT_GOING" ? "안함 ✓" : "안함"}
@@ -235,18 +284,33 @@ export default function GroupCalendar({
         </button>
       </div>
 
-      {/* 생성 시트 */}
-      {sheetOpen && (
+      {/* 생성/수정 시트 (공용) */}
+      {(sheetOpen || editing) && (
         <>
           <div
             className="fixed inset-0 z-20 animate-[fade-in_0.2s_ease] bg-black/50"
-            onClick={() => setSheetOpen(false)}
+            onClick={() => {
+              setSheetOpen(false);
+              setEditing(null);
+            }}
           />
           <div className="fixed bottom-0 left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2 animate-[slide-up_0.25s_ease] rounded-t-2xl bg-card2 px-[18px] pb-7 pt-5">
-            <h3 className="mb-3.5 text-base font-bold">{label(selIso)} 집합 띄우기</h3>
-            <form action={formAction} className="flex flex-col gap-3">
-              <input type="hidden" name="groupId" value={groupId} />
-              <input type="hidden" name="date" value={selIso} />
+            <h3 className="mb-3.5 text-base font-bold">
+              {label(selIso)} 집합 {editing ? "수정" : "띄우기"}
+            </h3>
+            <form
+              key={editing?.id ?? "new"}
+              action={editing ? editAction : formAction}
+              className="flex flex-col gap-3"
+            >
+              {editing ? (
+                <input type="hidden" name="hangoutId" value={editing.id} />
+              ) : (
+                <>
+                  <input type="hidden" name="groupId" value={groupId} />
+                  <input type="hidden" name="date" value={selIso} />
+                </>
+              )}
               <div>
                 <label className="mb-1.5 block text-xs text-muted">언제 (자유롭게)</label>
                 <input
@@ -254,6 +318,7 @@ export default function GroupCalendar({
                   required
                   maxLength={50}
                   autoFocus
+                  defaultValue={editing?.timeText}
                   placeholder="예: 금요일 퇴근 후 7시쯤"
                   className="w-full rounded-lg border border-line bg-card px-3 py-2.5 text-sm text-txt placeholder:text-muted/60 focus:border-accent focus:outline-none"
                 />
@@ -263,22 +328,37 @@ export default function GroupCalendar({
                 <input
                   name="note"
                   maxLength={100}
+                  defaultValue={editing?.note}
                   placeholder="예: 한잔 ㄱ? 적당히 마실 사람"
                   className="w-full rounded-lg border border-line bg-card px-3 py-2.5 text-sm text-txt placeholder:text-muted/60 focus:border-accent focus:outline-none"
                 />
               </div>
               <button
                 type="submit"
-                disabled={pending}
+                disabled={editing ? editPending : pending}
                 className="mt-1.5 w-full rounded-lg bg-accent py-3.5 text-[15px] font-extrabold text-white disabled:opacity-60"
               >
-                {pending ? "띄우는 중…" : "띄우기"}
+                {editing
+                  ? editPending
+                    ? "수정 중…"
+                    : "수정하기"
+                  : pending
+                    ? "띄우는 중…"
+                    : "띄우기"}
               </button>
-              {state && !state.ok && (
-                <p className="text-[13px] font-semibold text-accent">
-                  띄우기에 실패했어요. 다시 시도해 주세요.
-                </p>
-              )}
+              {editing
+                ? editState &&
+                  !editState.ok && (
+                    <p className="text-[13px] font-semibold text-accent">
+                      수정에 실패했어요. 다시 시도해 주세요.
+                    </p>
+                  )
+                : state &&
+                  !state.ok && (
+                    <p className="text-[13px] font-semibold text-accent">
+                      띄우기에 실패했어요. 다시 시도해 주세요.
+                    </p>
+                  )}
             </form>
           </div>
         </>
