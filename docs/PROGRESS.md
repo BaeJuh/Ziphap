@@ -2,7 +2,7 @@
 
 > 다음 세션에 이 문서부터 읽고 재개. 기획 전반은 [README.md](../README.md), 결정은 [adr/](adr/), 배포는 [DEPLOY.md](DEPLOY.md).
 
-## 현재 상태 (2026-06-25)
+## 현재 상태 (2026-07-14)
 
 **MVP 완성 + 배포 전 코드리뷰 반영 + Railway 배포 완료. `/admin` 운영 현황 추가.**
 
@@ -30,6 +30,15 @@
 
 이진 참가를 3상태(참가/안함/무반응)로 개정. `Attendance.status` enum(`GOING`|`NOT_GOING`, 기본 GOING) + 마이그레이션 `20260713000000_attendance_status`(수기 SQL). `toggleAttendance` → `setAttendance(hangoutId, status)` — 같은 버튼 재탭 시 해제. UI는 카드에 "참가 | 안함" 두 버튼, 안함은 `안함 N` 카운트만(이름 비노출, 압박 최소화), 무반응자 비표시.
 
+### 로컬 e2e 검증 + 집합 수정·삭제 + UI 다듬기 (2026-07-14)
+
+- **로컬 전체 흐름 브라우저 검증** (Playwright headless): 로그인→그룹→초대→집합→참가/안함/해제→/admin 전부 통과. 콘솔 에러 0.
+- **집합 수정·삭제 추가** — 띄운 사람만(`updateHangout`/`deleteHangout`, 서버 creatorId 검증). 수정은 생성 시트 재사용(timeText/note만 — 날짜 변경은 삭제 후 재생성), 참가 응답 유지. 삭제는 인라인 2단계("삭제"→"정말 삭제?", 3초 자동 복귀), Attendance는 cascade.
+- **라이트 테마 가시성** — clean 토큰 `--muted`/`--line`/`--chip` 한 단계 진하게. 텍스트 버튼 색: 수정=sat, 삭제=accent. "안함 ✓"는 반전 스타일(bg-txt/text-bg).
+- **admin 생성일 서울 기준** — instant를 `toISOString()`(UTC)으로 표시하던 버그. `lib/calendar.ts`에 `ymdSeoul()` 추가. 규칙: instant 표시=`ymdSeoul`, `@db.Date`=`toISOString().slice(0,10)`(UTC 자정 왕복이라 그대로).
+- **테마 하이드레이션 경고 억제** — 인라인 스크립트가 하이드레이션 전 `data-theme`를 붙여 발생. `<html suppressHydrationWarning>`(표준 패턴, 이 요소 속성만 제외).
+- 백링크 `‹` 글리프 2px 상향 정렬(그룹/admin).
+
 | 슬라이스 | 상태 |
 |---|---|
 | 1. 걸어다니는 골격 (로그인→그룹→캘린더) | ✅ |
@@ -42,7 +51,7 @@
 
 ## 다음 할 일
 
-커밋·푸시·배포 완료. 남은 건 **라이브 도메인에서 전체 흐름 최종 확인**(로그인→그룹→약속→참가→초대, `/admin`).
+7/14 작업분 커밋됨 — **푸시·배포는 보류 중**(라이브 확인도 함께 보류). 남은 건 푸시 후 **라이브 도메인에서 전체 흐름 최종 확인**(로그인→그룹→약속→참가→초대→수정/삭제, `/admin`).
 
 **백로그 (공개 확장 시):**
 
@@ -58,7 +67,7 @@
 - **인증** ([ADR 0003](adr/0003-db-credentials-auth.md)) — `lib/session.ts`(jose 쿠키), `lib/dal.ts`(`getUser`), `app/actions/auth.ts`(`login`/`logout`). 이름만 입력, 비번·이메일 없음.
 - **DB** — `prisma/schema.prisma`(5모델), `lib/prisma.ts`(PrismaPg 어댑터 싱글톤), `docker-compose.yml`(로컬 Postgres).
 - **그룹/초대** — `app/actions/group.ts`(`createGroup`/`joinGroup`), `app/join/[code]/page.tsx`, `app/groups/[id]/invite-link.tsx`.
-- **약속/참가** — `app/actions/hangout.ts`(`createHangout`/`setAttendance` — 참가/안함/해제, ADR 0006), `app/groups/[id]/group-calendar.tsx`(캘린더+바텀시트+생성시트, 클라이언트).
+- **약속/참가** — `app/actions/hangout.ts`(`createHangout`/`updateHangout`/`deleteHangout` — 수정·삭제는 띄운 사람만 / `setAttendance` — 참가/안함/해제, ADR 0006), `app/groups/[id]/group-calendar.tsx`(캘린더+바텀시트+생성·수정시트, 클라이언트).
 - **캘린더** ([ADR 0005](adr/0005-rolling-4week-calendar.md)) — `lib/calendar.ts`(오늘부터 4주, Asia/Seoul 기준·UTC 산술). 칸=띄운 사람 이니셜 아바타(내가 가는 약속은 초록), 전체는 날짜 탭→바텀시트 목록.
 - **디자인** — `app/globals.css`(토큰 + night/clean 테마 + 키프레임/스크롤바), `app/theme-toggle.tsx`, `app/groups/[id]/group-switcher.tsx`, `app/layout.tsx`(430px 프레임).
 - **운영 현황** — `app/admin/page.tsx`(읽기 전용). `ADMIN_NAMES`(쉼표구분 이름) 허용목록 게이트 → 비admin·미설정은 `notFound`(fail-closed). 요약수치(유저·그룹·약속·참가)·그룹별 멤버/약속수·최근 약속 8개. UI에 링크 없는 숨은 라우트. 인증은 임시(위 백로그 2).
